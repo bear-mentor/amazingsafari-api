@@ -1,21 +1,41 @@
-import { Hono } from "hono";
-import { prisma } from "./lib/prisma";
+import { OpenAPIHono } from "@hono/zod-openapi";
 import { cors } from "hono/cors";
+import { createRoute } from "@hono/zod-openapi";
+import { Scalar } from "@scalar/hono-api-reference";
 
-const app = new Hono();
+import { prisma } from "./lib/prisma";
+import { ProductsSchema } from "./modules/product/schema";
+
+const app = new OpenAPIHono();
 
 app.use(cors());
 
-app.get("/", (c) => {
-  return c.json({
-    message: "Amazing Safari Backend API",
-  });
+app.openapi(
+  createRoute({
+    method: "get",
+    path: "/products",
+    responses: {
+      200: {
+        content: { "application/json": { schema: ProductsSchema } },
+        description: "Get all products",
+      },
+    },
+  }),
+  async (c) => {
+    const products = await prisma.product.findMany();
+
+    return c.json(products);
+  }
+);
+
+app.doc("/openapi.json", {
+  openapi: "3.0.0",
+  info: {
+    version: "1.0.0",
+    title: "Amazing Safari API",
+  },
 });
 
-app.get("/products", async (c) => {
-  const products = await prisma.product.findMany();
-
-  return c.json(products);
-});
+app.get("/", Scalar({ url: "/openapi.json" }));
 
 export default app;
