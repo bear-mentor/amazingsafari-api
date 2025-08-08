@@ -4,7 +4,7 @@ import { createRoute } from "@hono/zod-openapi";
 import { Scalar } from "@scalar/hono-api-reference";
 
 import { prisma } from "./lib/prisma";
-import { ProductsSchema } from "./modules/product/schema";
+import { ProductSchema, ProductsSchema, ProductsSlugSchema } from "./modules/product/schema";
 
 const app = new OpenAPIHono();
 
@@ -25,6 +25,37 @@ app.openapi(
     const products = await prisma.product.findMany();
 
     return c.json(products);
+  }
+);
+
+app.openapi(
+  createRoute({
+    method: "get",
+    path: "/products/{slug}",
+    request: {
+      params: ProductsSlugSchema,
+    },
+    responses: {
+      200: {
+        content: { "application/json": { schema: ProductSchema } },
+        description: "Get all products",
+      },
+      404: {
+        description: "Not found",
+      },
+    },
+  }),
+  async (c) => {
+    const { slug } = c.req.valid("param");
+
+    const product = await prisma.product.findUnique({
+      where: { slug },
+    });
+    if (!product) {
+      return c.json({ message: "Product not found" }, 404);
+    }
+
+    return c.json(product);
   }
 );
 
