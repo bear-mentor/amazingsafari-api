@@ -1,5 +1,7 @@
 # Amazing Safari Backend API
 
+## Setup
+
 To install dependencies:
 
 ```sh
