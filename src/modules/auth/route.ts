@@ -2,6 +2,7 @@ import { createRoute, OpenAPIHono } from "@hono/zod-openapi";
 import { prisma } from "../../lib/prisma";
 import { PrivateUserSchema } from "../user/schema";
 import { AuthLoginSchema, AuthRegisterSchema } from "./schema";
+import { hashPassword } from "../../lib/password";
 
 export const authRoute = new OpenAPIHono();
 
@@ -32,6 +33,11 @@ authRoute.openapi(
         data: {
           email: body.email,
           fullName: body.fullName,
+          password: {
+            create: {
+              hash: await hashPassword(body.password),
+            },
+          },
         },
       });
 
