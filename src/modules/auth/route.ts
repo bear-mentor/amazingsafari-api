@@ -8,7 +8,7 @@ import {
   AuthRegisterSchema,
 } from "./schema";
 import { hashPassword, verifyPassword } from "../../lib/password";
-import { signToken } from "../../lib/token";
+import { signToken, verifyToken } from "../../lib/token";
 
 export const authRoute = new OpenAPIHono();
 
@@ -124,9 +124,26 @@ authRoute.openapi(
     },
   }),
   async (c) => {
-    const user = await prisma.user.findFirst();
+    const authHeader = c.req.header("Authorization");
+    if (!authHeader) {
+      return c.json({ message: "Authorization header is required" }, 401);
+    }
+
+    const token = authHeader.split(" ")[1];
+    if (!token) {
+      return c.json({ message: "Token is required" }, 401);
+    }
+
+    const decodedPayload = await verifyToken(token);
+    if (!decodedPayload) {
+      return c.json({ message: "Invalid token" }, 401);
+    }
+
+    const user = await prisma.user.findUnique({
+      where: { id: decodedPayload.sub },
+    });
     if (!user) {
-      return c.notFound();
+      return c.json({ message: "User is no longer available" }, 401);
     }
 
     return c.json(user);
