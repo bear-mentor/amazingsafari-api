@@ -9,6 +9,7 @@ import {
 } from "./schema";
 import { hashPassword, verifyPassword } from "../../lib/password";
 import { signToken, verifyToken } from "../../lib/token";
+import { checkAuthorized } from "./middleware";
 
 export const authRoute = new OpenAPIHono();
 
@@ -113,6 +114,7 @@ authRoute.openapi(
     method: "get",
     path: "/me",
     request: { headers: AuthHeaderSchema },
+    middleware: checkAuthorized,
     responses: {
       200: {
         content: { "application/json": { schema: PrivateUserSchema } },
@@ -124,27 +126,7 @@ authRoute.openapi(
     },
   }),
   async (c) => {
-    const authHeader = c.req.header("Authorization");
-    if (!authHeader) {
-      return c.json({ message: "Authorization header is required" }, 401);
-    }
-
-    const token = authHeader.split(" ")[1];
-    if (!token) {
-      return c.json({ message: "Token is required" }, 401);
-    }
-
-    const decodedPayload = await verifyToken(token);
-    if (!decodedPayload) {
-      return c.json({ message: "Invalid token" }, 401);
-    }
-
-    const user = await prisma.user.findUnique({
-      where: { id: decodedPayload.sub },
-    });
-    if (!user) {
-      return c.json({ message: "User is no longer available" }, 401);
-    }
+    const user = c.get("user");
 
     return c.json(user);
   }
