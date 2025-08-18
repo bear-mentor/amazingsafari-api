@@ -1,7 +1,8 @@
-import { createRoute, OpenAPIHono } from "@hono/zod-openapi";
+import { createRoute, OpenAPIHono, z } from "@hono/zod-openapi";
 import { prisma } from "../../lib/prisma";
 import { PrivateUserSchema } from "../user/schema";
 import {
+  AuthHeaderSchema,
   AuthLoginSchema,
   AuthLoginSuccessSchema,
   AuthRegisterSchema,
@@ -111,6 +112,7 @@ authRoute.openapi(
   createRoute({
     method: "get",
     path: "/me",
+    request: { headers: AuthHeaderSchema },
     responses: {
       200: {
         content: { "application/json": { schema: PrivateUserSchema } },
